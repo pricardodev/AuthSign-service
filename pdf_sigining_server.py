@@ -8,7 +8,7 @@ from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 # from pyhanko.pdf_utils import misc
 from pyhanko.sign.signers.pdf_signer import PdfTBSDocument
 # from io import BytesIO
-from pyhanko.stamp import TextStampStyle, TextBoxStyle
+from pyhanko.stamp import TextStampStyle, QRStampStyle, TextBoxStyle
 
 app = Flask(__name__)
 
@@ -48,22 +48,32 @@ def prepare_pdf():
         w = IncrementalPdfFileWriter(pdf_file.stream)
         print("IncrementalPdfFileWriter inicializado")
 
-        # Configurar a aparência com TextStampStyle
         stamp_text = (
-            "Assinatura Digital\n"
-            "Assinante: {signer}\n"
-            "Data/Hora: {timestamp}"
-        ).format(signer="Assinante", timestamp="Data/Hora")
-        stamp_style = TextStampStyle(
-            # stamp_text=stamp_text,
+            "Documento Assinado Digitalmente\n"
+            # "Assinante: %(signer)s\n"
+            "Data/Hora: %(ts)s\n"
+        )
+        
+        stamp_style = QRStampStyle(
+            stamp_text=stamp_text,
             text_box_style=TextBoxStyle(
-                font_size=12,
-                leading=14,  # Espaçamento entre linhas
-                border_width=1,
+                font_size=16,
+                # leading=14,  # Espaçamento entre linhas
+                # border_width=1,
             ),
+            qr_inner_size=100
             # background=None,
         )
-        print(f"TextStampStyle configurado: {stamp_text}")
+        # stamp_style = TextStampStyle(
+        #     stamp_text=stamp_text,
+        #     text_box_style=TextBoxStyle(
+        #         font_size=12,
+        #         # leading=14,  # Espaçamento entre linhas
+        #         # border_width=1,
+        #     ),
+        #     # background=None,
+        # )
+        print(f"StampStyle configurado: {stamp_text}")
 
         
         # Configurar o campo de assinatura
@@ -71,7 +81,7 @@ def prepare_pdf():
             sig_field_name='Signature',
             on_page=0,  # Primeira página
             # Posição do campo de assinatura (x1, y1, x2, y2)
-            box=(400, 50, 550, 130)  # Canto inferior direito
+            box=(325, 25, 550, 80)  # Canto inferior direito
         )
         
         # Adicionar o campo de assinatura ao PDF
@@ -90,21 +100,22 @@ def prepare_pdf():
                 signature_value=16384,  # Espaço reservado para a assinatura CMS
             ),
             stamp_style=stamp_style,  # Aplicar o stamp configurado
-            new_field_spec=sig_field_spec  # Usar o campo criado
+            new_field_spec=sig_field_spec,  # Usar o campo criado
         )
 
         # Configurar o assinante
-        pdf_signer = signers.PdfSigner(
-            signers.PdfSignatureMetadata(
-                field_name='Signature',
-                md_algorithm='sha256',
-            ),
-            signer=signers.ExternalSigner(
-                signing_cert=None,
-                cert_registry=None,
-                signature_value=16384,  # Tamanho suficiente para CMS
-            )
-        )
+        # pdf_signer = signers.PdfSigner(
+        #     signature_meta=signers.PdfSignatureMetadata(
+        #         field_name='Signature',
+        #         md_algorithm='sha256',
+        #     ),
+        #     signer=signers.ExternalSigner(
+        #         signing_cert=None,
+        #         cert_registry=None,
+        #         signature_value=16384,  # Tamanho suficiente para CMS
+        #     ),
+        #     stamp_style=stamp_style
+        # )
         print("PdfSigner configurado com ExternalSigner (signature_value=16384)")
 
         # Preparar o documento
