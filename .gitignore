@@ -1,0 +1,5 @@
+*.p7s
+*.pdf
+.venv
+venv
+__pycache__
