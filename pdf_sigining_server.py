@@ -84,7 +84,10 @@ def prepare_pdf():
 
         # Preparar o documento
         prep_digest, tbs_document, output = pdf_signer.digest_doc_for_signing(
-            w, bytes_reserved=16384
+            w, bytes_reserved=16384,
+            appearance_text_params = {
+                'url': 'https://validar.iti.gov.br/'
+            }
         )
 
         # Gerar um ID único para o documento
@@ -151,7 +154,7 @@ def embed_signature_in_previous_prepered_document():
 
         # Retornar o PDF assinado codificado em Base64
         return jsonify({
-            'signed_pdf': base64.b64encode(output.read()).decode('ascii')
+            'signed_pdf_in_base64_encoded': base64.b64encode(output.read()).decode('ascii')
         })
     except ValueError as e:
         print(f"Erro ao incorporar a assinatura: {str(e)}")
