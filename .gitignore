@@ -1,6 +1,9 @@
-*.p7s
-*.pdf
+__pycache__
 .venv
 venv
-__pycache__
+
+.env
+*.p7s
+*.pdf
 *_test.py
+*.pem

@@ -1,14 +1,16 @@
 from flask import Flask, request, jsonify
 import tempfile
 import os
+from dotenv import load_dotenv
 import base64
 import shutil
+
 from pyhanko.sign import signers, fields
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
-# from pyhanko.pdf_utils import misc
 from pyhanko.sign.signers.pdf_signer import PdfTBSDocument
-# from io import BytesIO
-from pyhanko.stamp import TextStampStyle, QRStampStyle, TextBoxStyle
+from pyhanko.stamp import QRStampStyle, TextBoxStyle
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -17,15 +19,23 @@ tbs_documents = {}
 
 def cmsDecode(cms_in_base64_pkcs7: str):
     from asn1crypto import cms
-    cms_lines = cms_in_base64_pkcs7.split('\n')
+
+    cms_content = cms_in_base64_pkcs7.replace('-----BEGIN CMS-----', '-----BEGIN PKCS7-----\n')
+    cms_content = cms_content.replace('-----END CMS-----', '-----END PKCS7-----\n')
+
+    cms_lines = cms_content.split('\n')
     cms_base64 = ''.join(line for line in cms_lines if not line.startswith('-----'))
+    cms_base64 = cms_base64.replace(' ', '').replace('\r', '')
 
     try:
         cms_data = base64.b64decode(cms_base64)
-        
-        return cms.ContentInfo.load(cms_data)
     except Exception as e:
         raise ValueError(f"Erro ao decodificar a assinatura CMS: {str(e)}")
+    
+    try:
+        return cms.ContentInfo.load(cms_data)
+    except Exception as e:
+        raise ValueError(f"Erro ao carregar o conteúdo CMS decodificado: {str(e)}")
 
 @app.route('/prepare-pdf-document', methods=['POST'])
 def prepare_pdf():
@@ -49,7 +59,9 @@ def prepare_pdf():
         )
         
         stamp_style = QRStampStyle(
+            border_width=1,
             stamp_text=stamp_text,
+            timestamp_format="%d/%m/%Y %H:%M:%S",
             text_box_style=TextBoxStyle(
                 font_size=16,
             ),
@@ -59,9 +71,9 @@ def prepare_pdf():
         # Configurar o campo de assinatura
         sig_field_spec = fields.SigFieldSpec(
             sig_field_name='Signature',
-            on_page=0,  # Primeira página
+            on_page=-1,  # Última página
             # Posição do campo de assinatura (x1, y1, x2, y2)
-            box=(325, 25, 550, 80)  # Canto inferior direito
+            box=(5, 5, 230, 60),  # Canto inferior direito
         )
         
         # Adicionar o campo de assinatura ao PDF
@@ -80,13 +92,14 @@ def prepare_pdf():
             ),
             stamp_style=stamp_style,  # Aplicar o stamp configurado
             new_field_spec=sig_field_spec,  # Usar o campo criado
+
         )
 
         # Preparar o documento
         prep_digest, tbs_document, output = pdf_signer.digest_doc_for_signing(
             w, bytes_reserved=16384,
             appearance_text_params = {
-                'url': 'https://validar.iti.gov.br/'
+                'url': 'https://validar.iti.gov.br/',
             }
         )
 
@@ -169,5 +182,5 @@ def embed_signature_in_previous_prepered_document():
 
 
 if __name__ == '__main__':
-    app.run(host='localhost', port=5000, debug=True)
+    app.run(host=os.getenv('SERVER_NAME'), port=os.getenv('SERVER_PORT'), debug=True)
        
