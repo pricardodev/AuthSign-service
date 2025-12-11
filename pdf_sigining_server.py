@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import base64
 import shutil
+import io
 
 from pyhanko.sign import signers, fields
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
@@ -49,8 +50,14 @@ def prepare_pdf():
         if not pdf_file.filename.endswith('.pdf'):
             return jsonify({'error': 'Arquivo deve ser um PDF'}), 400
 
-        # Criar um buffer para o PDF
-        w = IncrementalPdfFileWriter(pdf_file.stream)
+        # Converte o arquivo recebido em BytesIO
+        pdf_bytes = pdf_file.read()
+        pdf_buffer = io.BytesIO(pdf_bytes)
+        pdf_buffer.seek(0) #Algumas versões da pyHanko dependem que o stream esteja posicionado corretamente.
+
+        # Usa no writer
+        w = IncrementalPdfFileWriter(pdf_buffer)
+        #w = IncrementalPdfFileWriter(pdf_file.stream)
 
         stamp_text = (
             "Documento Assinado Digitalmente\n"
