@@ -182,5 +182,5 @@ def embed_signature_in_previous_prepered_document():
 
 
 if __name__ == '__main__':
-    app.run(host=os.getenv('SERVER_NAME'), port=os.getenv('SERVER_PORT'), debug=True)
+    app.run(host=os.getenv('SERVER_NAME'), port=os.getenv('SERVER_PORT'), debug=False)
        
