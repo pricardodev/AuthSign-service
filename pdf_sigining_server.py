@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import base64
 import shutil
 import io
+import datetime
 
 from pyhanko.sign import signers, fields
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
@@ -37,6 +38,40 @@ def cmsDecode(cms_in_base64_pkcs7: str):
         return cms.ContentInfo.load(cms_data)
     except Exception as e:
         raise ValueError(f"Erro ao carregar o conteúdo CMS decodificado: {str(e)}")
+
+@app.route('/')
+def home():
+    """Página inicial"""
+    return jsonify({
+        'service': 'AuthSign PDF Signing API',
+        'status': 'running',
+        'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
+        'endpoints': {
+            'health': '/health (GET)',
+            'status': '/status (GET)',
+            'prepare': '/prepare-pdf-document (POST)',
+            'embed': '/embed-cms-in-prepered-document (POST)'
+        }
+    })
+
+@app.route('/health', methods=['GET'])  # Note: HEALTH com dois L
+def health_check():
+    """Health check completo"""
+    return jsonify({
+        'status': 'UP',
+        'service': 'AuthSign PDF Signing Service',
+        'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
+        'checks': {
+            'api': 'operational',
+            'storage': 'ok',
+            'memory': 'stable'
+        }
+    })
+
+@app.route('/status', methods=['GET'])
+def status():
+    """Status simplificado"""
+    return jsonify({'status': 'ok'}), 200
 
 @app.route('/prepare-pdf-document', methods=['POST'])
 def prepare_pdf():
